@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pharmaguide-v30
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r PharmaGuide_v24/requirements.txt"
+    startCommand: "uvicorn PharmaGuide_v24.server:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_VISION_MODEL
+        value: gpt-4.1-mini
