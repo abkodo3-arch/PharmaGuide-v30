@@ -991,17 +991,62 @@ function saleMatches(q){const nq=normMarket(q);if(!nq)return[];let out=[];
   const seen=new Set();return out.sort((a,b)=>a.rank-b.rank).filter(x=>{const k=normMarket(x.name)+'|'+normMarket(x.generic);if(seen.has(k))return false;seen.add(k);return true}).slice(0,12)}
 function searchSaleDrug(){const q=document.getElementById('saleItem').value.trim();const box=document.getElementById('saleSuggestions');selectedSaleDrug=null;document.getElementById('selectedSale').textContent='';if(!q){box.innerHTML='';return}const hits=saleMatches(q);box.innerHTML=hits.length?hits.map((x,i)=>`<div class="sale-suggestion" onclick="selectSaleDrug(${i})"><b>${escapeHtml(x.name||'—')}</b><span>${escapeHtml(x.generic||'')} ${x.price!=null?'• '+escapeHtml(String(x.price))+' EGP':''}</span></div>`).join(''):'<div class="sale-suggestion"><span>No matching medicine found. Type the trade/generic name.</span></div>';window._saleHits=hits}
 function selectSaleDrug(i,hits){const x=(hits||window._saleHits||[])[i];if(!x)return;selectedSaleDrug=x;document.getElementById('saleItem').value=x.name||x.generic;document.getElementById('salePrice').value=x.price!=null?x.price:'';document.getElementById('selectedSale').innerHTML=`Selected: <b>${escapeHtml(x.name||x.generic)}</b>${x.generic&&normMarket(x.generic)!==normMarket(x.name)?` • ${escapeHtml(x.generic)}`:''}${x.price!=null?' • '+escapeHtml(String(x.price))+' EGP':''}`;document.getElementById('saleSuggestions').innerHTML=''}
-function recordSelectedSale(data) {
+function recordSelectedSale() {
+  const item = (selectedSaleDrug?.name || document.getElementById('saleItem')?.value || '').trim();
+  const priceEl = document.getElementById('salePrice');
+  const qtyEl = document.getElementById('saleQty');
+
+  const price = priceEl ? Number(priceEl.value) : Number(selectedSaleDrug?.price || 0);
+  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+
+  if (!item) {
+    alert('اختار الدواء أولاً');
+    return;
+  }
+
+  if (!Number.isFinite(price) || price <= 0) {
+    alert('أدخل سعر البيع أولاً');
+    return;
+  }
+
+  const now = new Date();
+
+  const data = {
+    date: now.toISOString().slice(0, 10),
+    time: now.toLocaleTimeString('en-GB'),
+    drug: item,
+    price: price * qty,
+    employee: ''
+  };
+
   fetch('https://script.google.com/macros/s/AKfycbyEkdodY26FGZ-DqtPQiS6jlo-w4GW3CMqQp4OH3fiqR815l6i2nlOFG4ptYu9hITI/exec', {
     method: 'POST',
     headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
+      'Content-Type': 'text/plain;charset=utf-8'
     },
     body: JSON.stringify(data)
   })
   .then(res => res.text())
-  .then(res => console.log('Response:', res))
-  .catch(err => console.error('Error:', err));
+  .then(res => {
+    console.log('Response:', res);
+
+    try {
+      const result = JSON.parse(res);
+
+      if (result.success) {
+        alert('تم تسجيل البيع في الشيت ✅');
+      } else {
+        alert('حصل خطأ أثناء تسجيل البيع');
+      }
+    } catch (e) {
+      console.log('Server response:', res);
+      alert('تم إرسال البيع، راجع الشيت');
+    }
+  })
+  .catch(err => {
+    console.error('Error:', err);
+    alert('فشل إرسال البيع للشيت');
+  });
 }
 function undoLastSale(){const today=todayKey();const all=getSales();const idx=all.map((x,i)=>[x,i]).filter(([x])=>x.day===today).pop()?.[1];if(idx===undefined){return}const sale=all[idx];if(!confirm(`حذف آخر عملية؟\n${sale.item} × ${sale.qty} — ${Number(sale.total||0).toFixed(2)} EGP`))return;all.splice(idx,1);localStorage.setItem('pharmaguide_sales',JSON.stringify(all));renderSales()}
 function getSalesHistory(){try{return JSON.parse(localStorage.getItem('pharmaguide_sales_history')||'[]')}catch(e){return []}}
