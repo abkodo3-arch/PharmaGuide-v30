@@ -1011,6 +1011,60 @@ function recordSelectedSale() {
 
   const now = new Date();
 
+  const params = new URLSearchParams({
+    action: 'recordSale',
+    date: now.toISOString().slice(0, 10),
+    time: now.toLocaleTimeString('en-GB'),
+    drug: item,
+    price: String(price * qty),
+    employee: ''
+  });
+
+  const url =
+    'https://script.google.com/macros/s/AKfycbyEkdodY26FGZ-DqtPQiS6jlo-w4GW3CMqQp4OH3fiqR815l6i2nlOFG4ptYu9hITI/exec?' +
+    params.toString();
+
+  fetch(url)
+    .then(res => res.text())
+    .then(res => {
+      console.log('Response:', res);
+
+      try {
+        const result = JSON.parse(res);
+
+        if (result.success) {
+          alert('تم تسجيل البيع في الشيت ✅');
+        } else {
+          alert('حصل خطأ أثناء تسجيل البيع');
+        }
+      } catch (e) {
+        alert('تم إرسال البيع، راجع الشيت');
+      }
+    })
+    .catch(err => {
+      console.error('Error:', err);
+      alert('فشل تسجيل البيع');
+    });
+}
+  const item = (selectedSaleDrug?.name || document.getElementById('saleItem')?.value || '').trim();
+  const priceEl = document.getElementById('salePrice');
+  const qtyEl = document.getElementById('saleQty');
+
+  const price = priceEl ? Number(priceEl.value) : Number(selectedSaleDrug?.price || 0);
+  const qty = qtyEl ? Number(qtyEl.value || 1) : 1;
+
+  if (!item) {
+    alert('اختار الدواء أولاً');
+    return;
+  }
+
+  if (!Number.isFinite(price) || price <= 0) {
+    alert('أدخل سعر البيع أولاً');
+    return;
+  }
+
+  const now = new Date();
+
   const data = {
     date: now.toISOString().slice(0, 10),
     time: now.toLocaleTimeString('en-GB'),
